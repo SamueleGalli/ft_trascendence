@@ -63,7 +63,7 @@ float   predictBallY(const Ball &ball, int ScreenSize, int Screenheight)
             else if (futureBallY > Screenheight)
             {
                 // La palla rimbalza dal bordo inferiore
-                futureBallY = 960 - futureBallY;
+                futureBallY = 2 * Screenheight - futureBallY;
             }
         }
         //posizione prevista palla
@@ -86,7 +86,7 @@ void    updateAIPaddle(Paddle &ai, const Ball &ball, float deltaTime, int Screen
         float targety = predictBallY(ball, ScreenSize, Screenheight);
         // Calcola la distanza tra la posizione prevista della palla e il centro della racchetta
         float distance = targety - (ai.y + ai.height / 2);
-        float direction = 0;
+        float direction = 0.0f;
         //in base alla distanza vado o su o giu
         if (distance > 0)
             distance = 1.0f;
