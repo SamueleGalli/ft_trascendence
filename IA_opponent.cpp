@@ -41,46 +41,92 @@ struct Paddle
     float speed; //velocita
 };
 
-//aggiornare posizione racchetta
-void    updateAIPaddle(Paddle &ai, const Ball &ball, float deltaTime, int ScreenSize)
+float   predictBallY(const Ball &ball, int ScreenSize, int Screenheight)
 {
-    //se la palla si muove verso l'IA
+    //palla sta andando verso la ia in largezza
     if (ball.velx > 0)
     {
-        if (ball.y < ai.y + ai.height / 2) //se va sopra la racchetta si muove su
-            ai.y -= ai.speed * deltaTime;
-        else if (ball.y > ai.y + ai.height / 2) //se va sotto la racchetta si muove giu
-            ai.y += ai.speed *deltaTime;
+        //tempo neccessario per cui la palla raggiunge l'IA
+        float timeToReachAI = (ScreenSize - ball.x) / ball.velx;
+
+        //prevedi la posizone Y della palla in quel momento
+        float futureBallY = ball.y + ball.vely * timeToReachAI;
+
+        // Se la palla supera i bordi superiori o inferiori dello schermo, calcola il rimbalzo
+        while (futureBallY < 0 || futureBallY > Screenheight)
+        {
+            if (futureBallY < 0)
+            {
+                // La palla rimbalza dal bordo superiore
+                futureBallY = -futureBallY;
+            }
+            else if (futureBallY > Screenheight)
+            {
+                // La palla rimbalza dal bordo inferiore
+                futureBallY = 960 - futureBallY;
+            }
+        }
+        //posizione prevista palla
+        return futureBallY;
     }
-    //limita la posizione della racchetta entro i limiti dello schermo (ScreenSize)
-    if (ai.y < 0)
-        ai.y = 0;
-    if (ai.y + ai.height > ScreenSize)
-        ai.y = ScreenSize - ai.height;
+    //posizione corrente
+    return ball.y;
+}
+
+//aggiornare posizione racchetta
+void    updateAIPaddle(Paddle &ai, const Ball &ball, float deltaTime, int Screenheight, int ScreenSize, float &time)
+{
+    time +=  deltaTime;
+
+    //se il tempo arriva a un secondo inizio a aggiornare il tutto
+    if (time >= 1.0f)
+    {
+        time = 0;
+        //previsione posizione palla
+        float targety = predictBallY(ball, ScreenSize, Screenheight);
+        // Calcola la distanza tra la posizione prevista della palla e il centro della racchetta
+        float distance = targety - (ai.y + ai.height / 2);
+        float direction = 0;
+        //in base alla distanza vado o su o giu
+        if (distance > 0)
+            distance = 1.0f;
+        else
+            distance = -1.0f;
+        // Muovi la racchetta in base alla velocità e alla distanza, senza superare la velocità massima
+        ai.y += direction * std::min(ai.speed, std::abs(distance));
+
+        //limita racchetta all'interno dello schermo
+        if (ai.y < 0)
+            ai.y = 0;
+        if (ai.y + ai.height > Screenheight)
+            ai.y = Screenheight - ai.height;
+        //posizione racchetta
+        std::cout << "Posizione IA : " << ai.y << std::endl;
+    }
 }
 
 //variabili racchetta e palla placeholder
 int main()
 {
-    int ScreenSize = 480;
+    int Screenheight = 480;
+    int screenSize = 620;
     //posizione e velocita iniziali
     Ball ball = {320, 240, -200, 100};
     Paddle ai = {620, 200, 80, 250};
 
     //velocita aggiornamento frame
     float deltaTime = 0.016f;
+    float time = 0.0f;
 
     for (int i = 0; i < 1000; ++i)
     {
         //aggiorna la posizione della racchetta
-        updateAIPaddle(ai, ball, deltaTime, ScreenSize);
-        //posizione racchetta
-        std::cout << "Posizione IA : " << ai.y << std::endl;
+        updateAIPaddle(ai, ball, deltaTime, Screenheight, screenSize, time);
         //aggiorna la posizione della palla
         ball.x += ball.velx * deltaTime;
         ball.y += ball.vely * deltaTime;
         //se la barda colpisce i bordi la rifletti
-        if (ball.y <= 0 || ball.y >= ScreenSize)
+        if (ball.y <= 0 || ball.y >= Screenheight)
             ball.vely = -ball.vely;
     }
     return 0;
